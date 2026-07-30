@@ -1,0 +1,8 @@
+{
+  "name": "mandaybook",
+  "private": true,
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node api/venio/employees.test.js"
+  }
+}

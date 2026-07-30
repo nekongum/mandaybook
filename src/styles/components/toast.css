@@ -1,0 +1,23 @@
+/* Bottom-center notification pill ("Excel file downloaded", etc.). */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--ink);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  letter-spacing: -0.01em;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}

@@ -1,0 +1,102 @@
+/* The three numbered sections (Plan, Actual, Summary). */
+
+.section {
+  margin-bottom: 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg-card);
+}
+
+.section-header-text {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Round-cornered number badge — 01 / 02 / 03 */
+.section-num {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  color: white;
+  letter-spacing: 0;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--grad-violet), var(--grad-fuchsia));
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* Per-section badge color. Sections are counted after Report Settings. */
+.section:nth-of-type(2) .section-num {
+  background: linear-gradient(135deg, var(--grad-cyan), var(--grad-blue));
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+.section:nth-of-type(3) .section-num {
+  background: linear-gradient(135deg, var(--grad-amber), var(--grad-fuchsia));
+  box-shadow: 0 4px 12px rgba(217, 70, 239, 0.28);
+}
+.section:nth-of-type(4) .section-num {
+  background: linear-gradient(135deg, #10b981, var(--grad-cyan));
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.section-title {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.section-subtitle {
+  color: var(--ink-mute);
+  font-size: 13px;
+  margin-top: 2px;
+  letter-spacing: -0.01em;
+}
+
+/* Alerts shown above a section's content (e.g., "plan exceeds budget") */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 12px 24px 0;
+  letter-spacing: -0.01em;
+}
+
+.alert-info {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.alert-warn {
+  background: var(--warn-soft);
+  color: #b56b00;
+}
+
+.alert-icon {
+  font-weight: 700;
+  line-height: 1;
+}

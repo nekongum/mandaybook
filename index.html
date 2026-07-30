@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mandaybook</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- External libraries (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Firebase -->
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js"
+    }
+  }
+  </script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="src/styles/main.css?v=71">
+
+  <!-- App entry point (ES module) -->
+  <script type="module" src="src/js/main.js"></script>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-text">loading…</div>
+</div>
+
+<section class="auth-shell" id="authView" hidden>
+  <div class="auth-panel">
+    <div class="auth-brand">
+      <h1><span class="logo-manday">manday</span><span class="logo-book-light">book</span></h1>
+      <p>Visibility for Every Manday</p>
+    </div>
+    <form class="auth-form" id="authForm">
+      <div>
+        <h2 id="authTitle">Welcome</h2>
+        <p id="authSubtitle">Log in to open your saved mandaybook workspace.</p>
+      </div>
+      <div class="auth-name-grid" id="authNameFields" hidden>
+        <label>
+          First name
+          <input type="text" id="authFirstName" autocomplete="given-name" placeholder="First name">
+        </label>
+        <label>
+          Last name
+          <input type="text" id="authLastName" autocomplete="family-name" placeholder="Last name">
+        </label>
+      </div>
+      <label>
+        Email
+        <input type="email" id="authEmail" autocomplete="email" placeholder="you@company.com" required>
+      </label>
+      <label>
+        Password
+        <input type="password" id="authPassword" autocomplete="current-password" placeholder="Your password" required>
+      </label>
+      <label id="authConfirmPasswordField" hidden>
+        Confirm password
+        <input type="password" id="authConfirmPassword" autocomplete="new-password" placeholder="Enter password again" minlength="8">
+      </label>
+      <div class="auth-success" id="authSuccess" hidden></div>
+      <div class="auth-error" id="authError" hidden></div>
+      <button class="btn btn-primary auth-submit" id="authSubmit" type="submit">Log in</button>
+      <div class="auth-switch">
+        <span id="authModeHint">New here?</span>
+        <button type="button" id="authModeToggle">Create account</button>
+      </div>
+      <div class="auth-switch" id="authForgotRow">
+        <span>Forgot your password?</span>
+        <button type="button" id="authForgotBtn">Reset password</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="auth-shell" id="resetPasswordView" hidden>
+  <div class="auth-panel">
+    <div class="auth-brand">
+      <h1><span class="logo-manday">manday</span><span class="logo-book-light">book</span></h1>
+      <p>Visibility for Every Manday</p>
+    </div>
+    <form class="auth-form" id="resetPasswordForm">
+      <div>
+        <h2>Set new password</h2>
+        <p>Enter your new password below.</p>
+      </div>
+      <label>
+        New password
+        <input type="password" id="resetNewPassword" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required>
+      </label>
+      <label>
+        Confirm new password
+        <input type="password" id="resetConfirmPassword" autocomplete="new-password" placeholder="Enter password again" minlength="8" required>
+      </label>
+      <div class="auth-success" id="resetSuccess" hidden></div>
+      <div class="auth-error" id="resetError" hidden></div>
+      <button class="btn btn-primary auth-submit" type="submit">Save new password</button>
+      <div class="auth-switch">
+        <span>Remember it now?</span>
+        <button type="button" id="resetBackBtn">Back to log in</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="dashboard-shell" id="dashboardView" hidden>
+  <div class="dashboard-inner">
+    <header class="dashboard-header">
+      <div class="title-block">
+        <h1><span class="logo-manday">manday</span><span class="logo-book">book</span></h1>
+        <p>Visibility for Every Manday</p>
+      </div>
+      <div class="profile-menu" data-profile-menu>
+        <button class="user-pill profile-trigger" type="button" id="dashboardProfileBtn" aria-expanded="false">
+          <span id="dashboardUserName"></span>
+          <span class="profile-chevron">▾</span>
+        </button>
+        <div class="profile-dropdown" hidden>
+          <button type="button" data-profile-action="edit">Edit Profile</button>
+          <button type="button" data-profile-action="logout">Log Out</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-card-bg">
+    <div class="dashboard-greeting">
+      <p id="greetingText"></p>
+    </div>
+
+    <section class="dashboard-create">
+      <h2>Tell us about your project.</h2>
+      <p>Create a company to organize your manday timesheets, usage, reports, and logs in one place.</p>
+      <button class="create-workspace-btn" type="button" id="openCreateWorkspaceBtn">
+        <span class="create-workspace-btn-icon">+</span>
+        Create Workspace
+      </button>
+    </section>
+
+    <div class="dashboard-toolbar">
+      <div>
+        <h3>Project list</h3>
+        <p id="companyListHint">Open a workspace or manage company details.</p>
+      </div>
+      <div class="toolbar-search-group">
+        <input type="search" id="companySearch" placeholder="Search company">
+        <div class="sort-menu-wrap">
+          <button type="button" class="sort-menu-btn" id="sortMenuBtn" aria-label="Sort options">⋯</button>
+          <div class="sort-menu" id="sortMenu" hidden>
+            <button type="button" data-sort="default">Default order</button>
+            <button type="button" data-sort="az">A → Z</button>
+            <button type="button" data-sort="za">Z → A</button>
+            <button type="button" data-sort="most-used">Most used</button>
+            <button type="button" data-sort="least-used">Least used</button>
+            <hr class="sort-menu-divider">
+            <button type="button" id="selectModeBtn">Select cards</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="company-grid" id="companyGrid"></div>
+    </div><!-- /.dashboard-card-bg -->
+
+  </div>
+</section>
+
+
+<section class="app-shell" id="appView" hidden>
+  <div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="title-block">
+      <h1><span class="logo-manday">manday</span><span class="logo-book">book</span></h1>
+      <p>plan, log, and watch your project budget in real time</p>
+    </div>
+    <div class="header-actions">
+      <div class="breadcrumb-pill">
+        <button class="breadcrumb-btn" id="backToCompaniesBtn">Projects</button>
+        <span class="breadcrumb-separator">→</span>
+        <span class="breadcrumb-current" id="currentCompanyName"></span>
+      </div>
+      <div class="header-sep"></div>
+      <div class="header-group">
+        <div class="dropdown">
+          <button class="btn btn-primary" id="downloadToggle">↓ Download ▾</button>
+          <div class="dropdown-menu" id="downloadMenu">
+            <button class="dropdown-item" data-action="export-pdf">
+              <span class="icon">P</span>
+              <span class="label">PDF Report<div class="sublabel">printable summary</div></span>
+            </button>
+            <button class="dropdown-item" data-action="export-xlsx">
+              <span class="icon">X</span>
+              <span class="label">Excel (.xlsx)<div class="sublabel">editable spreadsheet</div></span>
+            </button>
+          </div>
+        </div>
+        <button class="btn" id="projectInfoBtn">Project Info</button>
+        <button class="btn" id="clientViewBtn">Client View</button>
+      </div>
+      <div class="header-sep"></div>
+      <div class="profile-menu" data-profile-menu>
+        <button class="user-pill profile-trigger" type="button" id="appProfileBtn" aria-expanded="false">
+          <span id="currentUserName"></span>
+          <span class="profile-chevron">▾</span>
+        </button>
+        <div class="profile-dropdown" hidden>
+          <button type="button" data-profile-action="edit">Edit Profile</button>
+          <button type="button" data-profile-action="logout">Log Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="client-view" id="clientView" hidden>
+    <div class="client-header">
+      <div>
+        <div class="client-eyebrow">Client-facing view</div>
+        <h2 id="clientTitle">Manday Summary</h2>
+        <p id="clientSubtitle">Read-only project utilization snapshot</p>
+      </div>
+      <button class="btn" id="editViewBtn">Back to Edit</button>
+    </div>
+
+    <div class="client-metrics">
+      <div class="client-metric">
+        <span>Manday Purchased</span>
+        <strong id="clientPurchased">0.00 md</strong>
+      </div>
+      <div class="client-metric">
+        <span>Used</span>
+        <strong id="clientUsed">0.00 md</strong>
+      </div>
+      <div class="client-metric">
+        <span>Remaining</span>
+        <strong id="clientRemaining">0.00 md</strong>
+      </div>
+      <div class="client-metric">
+        <span>Status</span>
+        <strong id="clientStatus">Available</strong>
+      </div>
+    </div>
+
+    <div class="client-progress">
+      <div class="client-progress-head">
+        <span>Utilization</span>
+        <strong id="clientPercent">0%</strong>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="clientProgressFill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="client-grid">
+      <div class="client-panel">
+        <div class="client-panel-title">
+          <span>Planned Activities</span>
+          <strong id="clientPlannedTotal">0.00 md</strong>
+        </div>
+        <div class="client-table-wrap">
+          <table class="client-table">
+            <thead>
+              <tr>
+                <th>Activity</th>
+                <th>Description</th>
+                <th class="right">Mandays</th>
+              </tr>
+            </thead>
+            <tbody id="clientPlanBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="client-panel">
+        <div class="client-panel-title">
+          <span>Actual Work Log</span>
+          <strong id="clientActualTotal">0.00 md</strong>
+        </div>
+        <div class="client-table-wrap">
+          <table class="client-table">
+            <thead>
+              <tr>
+                <th>Work</th>
+                <th>Date</th>
+                <th>Stakeholder</th>
+                <th class="right">Mandays</th>
+              </tr>
+            </thead>
+            <tbody id="clientActualBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hidden file input for logo upload -->
+  <input type="file" id="logoUpload" accept="image/*" style="display:none">
+
+  <!-- PROJECT INFO -->
+  <div class="project-info">
+    <div class="info-card">
+      <label>Customer</label>
+      <input type="text" id="customer" placeholder="NongBetty Co., Ltd.">
+    </div>
+    <div class="info-card">
+      <label>Manday Purchased</label>
+      <div class="input-with-unit">
+        <input type="text" inputmode="decimal" id="mandayPurchased" placeholder="10">
+        <span class="unit">md</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <label>Hours per Manday</label>
+      <div class="input-with-unit">
+        <input type="text" inputmode="decimal" id="hoursPerManday" value="8">
+        <span class="unit">hrs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT SETTINGS -->
+  <details class="report-settings" id="reportSettings">
+    <summary>
+      <span class="settings-icon">⚙</span>
+      <span class="settings-title-wrap">
+        <span class="settings-title">Report Settings</span>
+        <span class="settings-hint">customize title &amp; color for PDF export</span>
+      </span>
+      <span class="settings-chevron">▾</span>
+    </summary>
+    <div class="settings-body">
+      <div class="logo-row">
+        <div class="logo-slot" id="logoSlot">
+          <div class="logo-placeholder" id="logoPlaceholder">LOGO<br>+ click</div>
+          <img id="logoImg" style="display:none" alt="logo">
+          <button class="logo-remove" id="logoRemove">×</button>
+        </div>
+        <div class="logo-info">
+          <div class="logo-info-label">Company Logo</div>
+          <div class="logo-info-hint">Click to upload — PNG/SVG with transparent background recommended (max 2MB).</div>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="info-card">
+          <label>Report Title</label>
+          <input type="text" id="docTitle" placeholder="Manday Allocation Report">
+        </div>
+        <div class="info-card">
+          <label>Report Subtitle</label>
+          <input type="text" id="docSubtitle" placeholder="Project budget tracking summary">
+        </div>
+      </div>
+      <div class="theme-picker">
+        <label class="theme-label">Theme Color</label>
+        <div class="theme-swatches" id="themeSwatches"></div>
+        <div class="theme-custom">
+          <label>Custom:</label>
+          <input type="color" id="customColor">
+          <span id="customColorHex" class="custom-hex"></span>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- SECTION 1: PLAN -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-header-text">
+        <div class="section-num">01</div>
+        <div>
+          <div class="section-title">Planned Activities</div>
+          <div class="section-subtitle">break down how the purchased mandays will be spent</div>
+        </div>
+      </div>
+    </div>
+    <div id="planAlert"></div>
+    <div class="table-wrap">
+      <table id="planTable">
+        <thead>
+          <tr>
+            <th class="drag-col"></th>
+            <th class="num-col">#</th>
+            <th>Activity</th>
+            <th>Description / Date</th>
+            <th class="center">Hours</th>
+            <th class="center">Minutes</th>
+            <th class="center">Total Hrs</th>
+            <th class="center">Mandays</th>
+            <th class="action-col"></th>
+          </tr>
+        </thead>
+        <tbody id="planBody"></tbody>
+        <tfoot>
+          <tr class="add-table-row">
+            <td colspan="9">
+              <button class="add-row-btn" id="addPlanBtn">+ add planned activity</button>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="6" class="label">Total Planned</td>
+            <td class="value" id="planTotalHours">0 ชม.</td>
+            <td class="value" id="planTotalMandays">0.00 md</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 2: ACTUAL LOG -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-header-text">
+        <div class="section-num">02</div>
+        <div>
+          <div class="section-title">Actual Work Log</div>
+          <div class="section-subtitle">record each task as it happens — phone calls, meetings, training</div>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="actualTable">
+        <thead>
+          <tr>
+            <th class="drag-col"></th>
+            <th class="num-col">#</th>
+            <th>Task / Activity</th>
+            <th>Date</th>
+            <th class="center">Hours</th>
+            <th class="center">Minutes</th>
+            <th class="center">Total Hrs</th>
+            <th class="center">Mandays</th>
+            <th>Stakeholder</th>
+            <th class="action-col"></th>
+          </tr>
+        </thead>
+        <tbody id="actualBody"></tbody>
+        <tfoot>
+          <tr class="add-table-row">
+            <td colspan="10">
+              <button class="add-row-btn quick-add" id="addActualBtn">+ log a task</button>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="6" class="label">Total Actual</td>
+            <td class="value" id="actualTotalHours">0 ชม.</td>
+            <td class="value" id="actualTotalMandays">0.00 md</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="quick-bar">
+      <div class="quick-stats">
+        <div class="quick-stat">
+          <span class="quick-stat-dot today"></span>
+          <span class="quick-stat-label">Today</span>
+          <span class="quick-stat-value" id="qsToday">0 tasks · 0 ชม.</span>
+        </div>
+        <div class="quick-stat">
+          <span class="quick-stat-dot week"></span>
+          <span class="quick-stat-label">This week</span>
+          <span class="quick-stat-value" id="qsWeek">0 tasks · 0 ชม. · 0.00 md</span>
+        </div>
+        <div class="quick-stat">
+          <span class="quick-stat-dot month"></span>
+          <span class="quick-stat-label">This month</span>
+          <span class="quick-stat-value" id="qsMonth">0 tasks · 0 ชม. · 0.00 md</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: SUMMARY -->
+  <section class="section section-document">
+    <div class="section-header">
+      <div class="section-header-text">
+        <div class="section-num">03</div>
+        <div>
+          <div class="section-title">Summary &amp; Progress</div>
+          <div class="section-subtitle">at-a-glance: what's used, what's left, where you stand</div>
+        </div>
+      </div>
+    </div>
+    <div class="document-body">
+      <div class="doc-header">
+        <div class="doc-header-row">
+          <div class="doc-field">
+            <div class="doc-field-label">Customer</div>
+            <div class="doc-field-value" id="docCustomer">—</div>
+          </div>
+          <div class="doc-field">
+            <div class="doc-field-label">Statement Date</div>
+            <div class="doc-field-value" id="docDate">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="statement-table">
+        <div class="statement-row statement-head">
+          <div class="statement-cell statement-label">Description</div>
+          <div class="statement-cell statement-value">Amount</div>
+        </div>
+        <div class="statement-row">
+          <div class="statement-cell statement-label">Manday Purchased <span class="statement-hint">(contracted)</span></div>
+          <div class="statement-cell statement-value" id="sumPurchased">0.00 md</div>
+        </div>
+        <div class="statement-row">
+          <div class="statement-cell statement-label">Total Hours Available <span class="statement-hint">(purchased × hours per manday)</span></div>
+          <div class="statement-cell statement-value" id="sumAvailable">0 ชม.</div>
+        </div>
+        <div class="statement-row statement-divider">
+          <div class="statement-cell statement-label">Total Planned <span class="statement-hint">(Section 01)</span></div>
+          <div class="statement-cell statement-value" id="sumPlanned">0.00 md</div>
+        </div>
+        <div class="statement-row">
+          <div class="statement-cell statement-label">Total Used <span class="statement-hint">(Section 02 actual)</span></div>
+          <div class="statement-cell statement-value" id="sumUsed">0.00 md</div>
+        </div>
+        <div class="statement-row statement-divider">
+          <div class="statement-cell statement-label">Remaining Mandays <span class="statement-hint">(purchased − used)</span></div>
+          <div class="statement-cell statement-value statement-emphasis" id="sumRemaining">0.00 md</div>
+        </div>
+        <div class="statement-row statement-total">
+          <div class="statement-cell statement-label">
+            <div class="statement-total-label">Utilization</div>
+            <div class="statement-total-sub">actual ÷ purchased</div>
+          </div>
+          <div class="statement-cell statement-value">
+            <div class="statement-total-value" id="progressPercent">0%</div>
+            <div class="utilization-status status-available" id="utilizationStatus">Available</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-footer">
+        <div class="doc-footer-label">Visual progress</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="generated-note" id="generatedNote">Generated —</div>
+        <div class="doc-footer-note" id="planVsBudget"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="footer-note">— mandaybook, built with care —</p>
+</div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<div class="select-float-bar" id="selectActionBar" hidden>
+  <span id="selectCount">0 selected</span>
+  <div class="select-float-actions">
+    <button type="button" class="select-float-btn" id="selectAllBtn">Select all</button>
+    <button type="button" class="select-float-btn select-float-delete" id="deleteSelectedBtn">Delete</button>
+    <button type="button" class="select-float-btn select-float-cancel" id="cancelSelectBtn">Cancel</button>
+  </div>
+</div>
+
+<div class="profile-modal" id="cardActionModal" hidden>
+  <div class="card-action-dialog">
+    <div class="card-action-header">
+      <span id="cardActionName"></span>
+    </div>
+    <button type="button" class="card-action-item" id="cardActionCustomize">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Customize
+    </button>
+    <button type="button" class="card-action-item" id="cardActionRename">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Rename
+    </button>
+    <button type="button" class="card-action-item card-action-danger" id="cardActionDelete">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      Delete
+    </button>
+    <button type="button" class="card-action-cancel" id="cardActionCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="profile-modal" id="customizeModal" hidden>
+  <div class="profile-dialog customize-dialog">
+    <div class="profile-dialog-head">
+      <div>
+        <h2>Customize card</h2>
+        <p>Changes preview live — save when ready.</p>
+      </div>
+      <button type="button" class="profile-close" id="customizeCloseBtn">×</button>
+    </div>
+
+    <!-- Live preview -->
+    <div class="customize-preview-wrap">
+      <div class="customize-preview-card" id="customizePreview">
+        <div class="customize-preview-inner">
+          <div class="customize-preview-badge" id="previewBadge"></div>
+          <div class="customize-preview-name" id="previewName"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Background: color OR image (mutually exclusive) -->
+    <div class="customize-section">
+      <label class="customize-label">Background color</label>
+      <div class="customize-swatches" id="customizeSwatches"></div>
+    </div>
+
+    <div class="customize-section">
+      <label class="customize-label">Background image</label>
+      <div class="customize-wallpaper-grid" id="customizeWallpapers"></div>
+      <div class="customize-upload-row" style="margin-top:10px">
+        <button type="button" class="btn" id="customizeBgUploadBtn">Upload image</button>
+        <button type="button" class="btn" id="customizeBgRemoveBtn">Remove image</button>
+        <input type="file" id="customizeBgInput" accept="image/*" style="display:none">
+      </div>
+    </div>
+
+    <div class="customize-section">
+      <label class="customize-label">Company logo</label>
+      <div class="customize-upload-row">
+        <button type="button" class="btn" id="customizeLogoUploadBtn">Upload logo</button>
+        <button type="button" class="btn" id="customizeLogoRemoveBtn">Remove logo</button>
+        <input type="file" id="customizeLogoInput" accept="image/*" style="display:none">
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <button type="button" class="btn" id="customizeCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="customizeSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="profile-modal" id="projectInfoModal" hidden>
+  <div class="profile-dialog" style="max-width:480px">
+    <div class="profile-dialog-head">
+      <div>
+        <h2>Project Info</h2>
+        <p>Details about this workspace.</p>
+      </div>
+      <button type="button" class="profile-close" id="projectInfoCloseBtn">×</button>
+    </div>
+
+    <label>
+      Company name
+      <input type="text" id="piCompanyName" autocomplete="off">
+    </label>
+
+    <label>
+      Number of employees
+      <input type="number" id="piEmployeeCount" min="1">
+    </label>
+
+    <div class="employee-picker" id="piEmployeePicker">
+      <label for="piEmployeeSearch">Project members</label>
+      <div class="employee-picker-control">
+        <input type="search" id="piEmployeeSearch" placeholder="Search employee name"
+          autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-controls="piEmployeeResults" aria-expanded="false" data-employee-search>
+        <div class="employee-picker-results" id="piEmployeeResults" role="listbox"
+          data-employee-results hidden></div>
+      </div>
+      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
+    </div>
+
+    <fieldset class="cw-package-field">
+      <legend>Package</legend>
+      <div class="cw-package-options">
+        <label class="cw-pkg-opt"><input type="radio" name="piPackage" value="Lite"> Lite</label>
+        <label class="cw-pkg-opt"><input type="radio" name="piPackage" value="Basic"> Basic</label>
+        <label class="cw-pkg-opt"><input type="radio" name="piPackage" value="Pro"> Pro</label>
+        <label class="cw-pkg-opt"><input type="radio" name="piPackage" value="Pro+"> Pro+</label>
+        <label class="cw-pkg-opt"><input type="radio" name="piPackage" value="Enterprise"> Enterprise</label>
+      </div>
+    </fieldset>
+
+    <label>
+      Notes
+      <textarea id="piNotes" rows="3" style="resize:vertical"></textarea>
+    </label>
+
+    <div class="profile-actions">
+      <button type="button" class="btn" id="projectInfoCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="projectInfoSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="profile-modal" id="createWorkspaceModal" hidden>
+  <div class="profile-dialog" style="max-width:480px">
+    <div class="profile-dialog-head">
+      <div>
+        <h2>Create Workspace</h2>
+        <p>Fill in your company details to get started.</p>
+      </div>
+      <button type="button" class="profile-close" id="createWorkspaceCloseBtn">×</button>
+    </div>
+
+    <label>
+      Company name <span style="color:var(--danger)">*</span>
+      <input type="text" id="cwCompanyName" placeholder="e.g. Acme Co." autocomplete="organization">
+    </label>
+
+    <label>
+      Number of employees
+      <input type="number" id="cwEmployeeCount" placeholder="e.g. 50" min="1">
+    </label>
+
+    <div class="employee-picker" id="cwEmployeePicker">
+      <label for="cwEmployeeSearch">Project members</label>
+      <div class="employee-picker-control">
+        <input type="search" id="cwEmployeeSearch" placeholder="Search employee name"
+          autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-controls="cwEmployeeResults" aria-expanded="false" data-employee-search>
+        <div class="employee-picker-results" id="cwEmployeeResults" role="listbox"
+          data-employee-results hidden></div>
+      </div>
+      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
+    </div>
+
+    <fieldset class="cw-package-field">
+      <legend>Package</legend>
+      <div class="cw-package-options">
+        <label class="cw-pkg-opt"><input type="radio" name="cwPackage" value="Lite"> Lite</label>
+        <label class="cw-pkg-opt"><input type="radio" name="cwPackage" value="Basic"> Basic</label>
+        <label class="cw-pkg-opt"><input type="radio" name="cwPackage" value="Pro"> Pro</label>
+        <label class="cw-pkg-opt"><input type="radio" name="cwPackage" value="Pro+"> Pro+</label>
+        <label class="cw-pkg-opt"><input type="radio" name="cwPackage" value="Enterprise"> Enterprise</label>
+      </div>
+    </fieldset>
+
+    <label>
+      Notes
+      <textarea id="cwNotes" placeholder="Additional remarks..." rows="3" style="resize:vertical"></textarea>
+    </label>
+
+    <div class="profile-actions">
+      <button type="button" class="btn" id="createWorkspaceCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="createWorkspaceConfirmBtn">Create Workspace</button>
+    </div>
+  </div>
+</div>
+
+<div class="profile-modal" id="renameModal" hidden>
+  <div class="profile-dialog" style="max-width:420px">
+    <div class="profile-dialog-head">
+      <div>
+        <h2>Rename company</h2>
+        <p>Enter a new name for this workspace.</p>
+      </div>
+      <button type="button" class="profile-close" id="renameCloseBtn">×</button>
+    </div>
+    <label>
+      Company name
+      <input type="text" id="renameInput" autocomplete="off" required>
+    </label>
+    <div class="profile-actions">
+      <button type="button" class="btn" id="renameCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="renameConfirmBtn">Rename</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="profile-modal" id="profileModal" hidden>
+  <form class="profile-dialog" id="profileForm">
+    <div class="profile-dialog-head">
+      <div>
+        <h2>Profile</h2>
+        <p>Update the name shown in your workspace menu.</p>
+      </div>
+      <button type="button" class="profile-close" id="profileCloseBtn">×</button>
+    </div>
+    <div class="auth-name-grid">
+      <label>
+        First name
+        <input type="text" id="profileFirstName" autocomplete="given-name" required>
+      </label>
+      <label>
+        Last name
+        <input type="text" id="profileLastName" autocomplete="family-name" required>
+      </label>
+    </div>
+    <label>
+      Email <span class="profile-email-note">(cannot be changed)</span>
+      <input type="email" id="profileEmail" autocomplete="off" readonly>
+    </label>
+    <p class="profile-error" id="profileError" hidden></p>
+    <div class="profile-actions">
+      <button type="button" class="btn" id="profileCancelBtn">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="profileSaveBtn">Save Changes</button>
+    </div>
+  </form>
+</div>
+
+
+<div id="row-tooltip"></div>
+</html>

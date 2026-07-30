@@ -1,0 +1,67 @@
+/* Top-of-page input cards (Customer, Manday Purchased, Hours per Manday). */
+
+.project-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.info-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.info-card label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  color: var(--ink-mute);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.info-card input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  font-family: var(--font);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.info-card input:focus {
+  outline: none;
+}
+
+.info-card .unit {
+  color: var(--ink-mute);
+  font-size: 14px;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: baseline;
+}
+
+.input-with-unit input {
+  flex: 1;
+}

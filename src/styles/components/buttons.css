@@ -1,0 +1,141 @@
+/* Buttons — primary, ghost, danger variants. */
+
+.btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-card);
+  color: var(--ink);
+  border-radius: 980px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: -0.01em;
+}
+
+.btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--ink-light);
+}
+
+.btn-primary {
+  background: #c0192b;
+  color: white;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background: #a81625;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--line-strong);
+}
+
+.btn-danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+
+/* Bottom-of-table "add row" button */
+.add-row-btn {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed var(--line-strong);
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  letter-spacing: -0.01em;
+}
+
+/* Per-section accent colors for add-row */
+.section:nth-of-type(2) .add-row-btn { color: var(--grad-violet); }
+.section:nth-of-type(3) .add-row-btn { color: var(--grad-amber); }
+
+.add-row-btn:hover {
+  background: rgba(139, 92, 246, 0.06);
+}
+.section:nth-of-type(2) .add-row-btn:hover { background: rgba(139, 92, 246, 0.08); }
+.section:nth-of-type(3) .add-row-btn:hover { background: rgba(245, 158, 11, 0.08); }
+
+/* Row-level action buttons (duplicate / delete) */
+.action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--ink-light);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-size: 14px;
+  line-height: 1;
+  margin: 0 1px;
+  vertical-align: middle;
+}
+
+.dup-btn {
+  font-size: 13px;
+  font-family: var(--mono);
+}
+
+.dup-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.note-btn {
+  position: relative;
+  background: var(--bg-elevated);
+  color: #c7c7cc;
+  font-size: 11px;
+  font-family: var(--number);
+  font-weight: 700;
+}
+
+.note-btn:hover {
+  background: var(--line);
+  color: var(--ink-mute);
+}
+
+.note-btn::after { display: none; }
+
+.delete-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* JS-powered tooltip (shared across note-btn) */
+#row-tooltip {
+  position: fixed;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#row-tooltip.visible { opacity: 1; }

@@ -1,0 +1,173 @@
+/* ============ KEYFRAMES ============ */
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes menuDown {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes floatUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ============ UNIVERSAL TRANSITIONS ============ */
+
+/* ============ BUTTONS & INTERACTIVE ============ */
+
+.btn,
+button,
+a,
+[role="button"],
+.company-card,
+.customize-swatch,
+.customize-wallpaper,
+.card-action-item,
+.card-action-cancel,
+.sort-menu button,
+.card-menu-btn,
+.sort-menu-btn,
+.profile-dropdown button,
+.add-row-btn,
+.breadcrumb-pill,
+.breadcrumb-btn,
+input[type="checkbox"],
+select {
+  transition:
+    background-color 0.18s ease,
+    background      0.18s ease,
+    border-color    0.18s ease,
+    color           0.18s ease,
+    box-shadow      0.18s ease,
+    transform       0.14s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity         0.18s ease;
+}
+
+.btn:active,
+button:active,
+.card-action-item:active,
+.sort-menu button:active,
+.customize-swatch:active,
+.customize-wallpaper:active {
+  transform: scale(0.94);
+  transition-duration: 0.07s;
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+.company-card:hover {
+  transform: translateY(-3px) scale(1.01);
+}
+
+.company-card:active {
+  transform: scale(0.97);
+  transition-duration: 0.1s;
+}
+
+/* ============ INPUTS ============ */
+
+input,
+textarea,
+select {
+  transition:
+    border-color 0.18s ease,
+    box-shadow   0.18s ease,
+    background   0.18s ease;
+}
+
+/* ============ PAGE VIEWS ============ */
+
+#dashboardView {
+  animation: slideUp 0.38s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+
+/* ============ MODALS ============ */
+
+.profile-modal {
+  animation: fadeIn 0.22s ease both;
+}
+
+.profile-dialog,
+.card-action-dialog {
+  animation: popIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ============ DROPDOWNS ============ */
+
+.sort-menu:not([hidden]),
+.card-menu:not([hidden]),
+.profile-dropdown:not([hidden]) {
+  animation: menuDown 0.2s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* ============ FLOATING SELECT BAR ============ */
+
+.select-float-bar:not([hidden]) {
+  animation: floatUp 0.3s cubic-bezier(0.34, 1.46, 0.64, 1) both;
+}
+
+/* ============ APP SECTION ENTRIES ============ */
+
+.section,
+.project-info > *,
+.report-settings {
+  animation: slideUp 0.45s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+}
+
+.project-info > *:nth-child(1) { animation-delay: 0.04s; }
+.project-info > *:nth-child(2) { animation-delay: 0.08s; }
+.project-info > *:nth-child(3) { animation-delay: 0.12s; }
+.report-settings               { animation-delay: 0.16s; }
+.section:nth-of-type(2)        { animation-delay: 0.20s; }
+.section:nth-of-type(3)        { animation-delay: 0.24s; }
+.section:nth-of-type(4)        { animation-delay: 0.28s; }
+
+/* ============ TOAST ============ */
+
+.toast {
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============ PROGRESS BAR ============ */
+
+.company-progress span,
+.progress-bar-fill {
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ============ REDUCED MOTION ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,26 @@
+/*
+ * Main stylesheet entry point.
+ * Order matters: variables → base → components.
+ */
+
+@import url('./variables.css');
+@import url('./base.css');
+@import url('./animations.css');
+
+/* Components (alphabetical) */
+@import url('./components/auth.css');
+@import url('./components/buttons.css');
+@import url('./components/cards.css');
+@import url('./components/client-view.css');
+@import url('./components/dropdown.css');
+@import url('./components/header.css');
+@import url('./components/logo.css');
+@import url('./components/quick-stats.css');
+@import url('./components/sections.css');
+@import url('./components/settings.css');
+@import url('./components/statement.css');
+@import url('./components/tables.css');
+@import url('./components/toast.css');
+
+/* Theme layer */
+@import url('./minimal.css');

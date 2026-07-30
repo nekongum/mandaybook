@@ -1,0 +1,258 @@
+/* Read-only client-facing view. */
+
+.client-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.client-view[hidden] {
+  display: none;
+}
+
+body.client-mode .project-info,
+body.client-mode .report-settings,
+body.client-mode .section,
+body.client-mode .footer-note {
+  display: none;
+}
+
+body.client-mode #downloadToggle,
+body.client-mode #importBtn,
+body.client-mode #clientViewBtn,
+body.client-mode #resetBtn {
+  display: none;
+}
+
+.client-header {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.client-eyebrow {
+  color: var(--ink-mute);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.client-header h2 {
+  color: var(--ink);
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.client-header p {
+  color: var(--ink-mute);
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.client-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.client-metric,
+.client-progress,
+.client-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.client-metric {
+  padding: 18px 20px;
+}
+
+.client-metric span {
+  display: block;
+  color: var(--ink-mute);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.client-metric strong {
+  color: var(--ink);
+  font-family: var(--number);
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-progress {
+  padding: 18px 20px;
+}
+
+.client-progress-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.client-progress .progress-bar-fill {
+  background: var(--ink);
+  animation: none;
+}
+
+.client-progress .progress-bar-fill.alert {
+  background: #b45309;
+}
+
+.client-progress .progress-bar-fill.over {
+  background: var(--danger);
+}
+
+.client-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.client-panel {
+  overflow: hidden;
+}
+
+.client-panel-title {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-panel-title strong {
+  font-family: var(--number);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-mute);
+  white-space: nowrap;
+}
+
+.client-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.client-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.client-item:last-child {
+  border-bottom: none;
+}
+
+.client-item-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.client-item-meta {
+  color: var(--ink-mute);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.client-item-value {
+  color: var(--ink);
+  font-family: var(--number);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.client-empty {
+  padding: 18px;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+
+.client-table-wrap {
+  overflow-x: auto;
+}
+
+.client-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.client-table th,
+.client-table td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.client-table th {
+  background: var(--bg-elevated);
+  color: var(--ink-mute);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-table td {
+  color: var(--ink);
+}
+
+.client-table tr:last-child td {
+  border-bottom: none;
+}
+
+.client-table .right {
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--number);
+  font-variant-numeric: tabular-nums;
+}
+
+.client-table-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.client-table-meta {
+  margin-top: 3px;
+  color: var(--ink-mute);
+  font-family: var(--number);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .client-metrics,
+  .client-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .client-header {
+    flex-direction: column;
+  }
+}
