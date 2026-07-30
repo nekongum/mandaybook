@@ -1206,6 +1206,10 @@ tbody td select:focus {
   font-size: 13px;
   font-weight: 700;
 }
+.workspace-field-label,
+.workspace-field-label span {
+  display: inline;
+}
 .employee-picker-control {
   position: relative;
 }
@@ -1316,6 +1320,25 @@ tbody td select:focus {
 .employee-picker-selected button:hover {
   background: var(--danger-soft, #ffeaea);
   color: var(--danger);
+}
+
+.workspace-field-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.workspace-field-error[hidden] {
+  display: none;
+}
+.profile-dialog input.workspace-field-invalid {
+  border-color: var(--danger);
+}
+.profile-dialog input.workspace-field-invalid:focus,
+.profile-dialog input.workspace-field-invalid:focus-visible {
+  border-color: var(--danger);
+  outline-color: var(--danger);
 }
 
 #createWorkspaceModal .profile-dialog,

@@ -45,6 +45,10 @@ export function createEmployeePicker(root) {
     selectedList.hidden = selected.length === 0;
   }
 
+  function notifyChange() {
+    root.dispatchEvent(new CustomEvent('employeechange'));
+  }
+
   function renderOptions() {
     results.innerHTML = options.map((employee, index) => `
       <button type="button" role="option" aria-selected="${index === activeIndex}"
@@ -73,6 +77,7 @@ export function createEmployeePicker(root) {
     input.value = '';
     options = [];
     renderSelected();
+    notifyChange();
     closeResults();
     input.focus();
   }
@@ -151,6 +156,7 @@ export function createEmployeePicker(root) {
     if (!button) return;
     selected = selected.filter((item) => item.userId !== button.dataset.removeEmployee);
     renderSelected();
+    notifyChange();
   });
 
   document.addEventListener('click', (event) => {
@@ -174,6 +180,7 @@ export function createEmployeePicker(root) {
       input.value = '';
       options = [];
       renderSelected();
+      notifyChange();
       closeResults();
     }
   };

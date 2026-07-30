@@ -280,6 +280,7 @@ function openProjectInfoModal() {
   const companies = loadCompanies(currentUser);
   const company = companies.find(c => c.id === currentCompany?.id);
   if (!company) return;
+  clearWorkspaceValidation('pi');
   document.getElementById('piCompanyName').value = company.name || '';
   document.getElementById('piEmployeeCount').value = company.employeeCount || '';
   document.getElementById('piNotes').value = company.notes || '';
@@ -292,6 +293,7 @@ function openProjectInfoModal() {
 
 function closeProjectInfoModal() {
   projectInfoEmployeePicker.reset();
+  clearWorkspaceValidation('pi');
   document.getElementById('projectInfoModal').setAttribute('hidden', '');
 }
 
@@ -299,13 +301,14 @@ function saveProjectInfo() {
   const companies = loadCompanies(currentUser);
   const company = companies.find(c => c.id === currentCompany?.id);
   if (!company) return;
-  const name = document.getElementById('piCompanyName').value.trim();
-  if (!name) { showToast('Company name is required'); return; }
+  const validation = validateWorkspaceRequiredFields('pi', projectInfoEmployeePicker);
+  if (!validation.valid) return;
+  const name = validation.name;
   company.name = name;
   company.employeeCount = Number(document.getElementById('piEmployeeCount').value) || undefined;
   company.notes = document.getElementById('piNotes').value.trim() || undefined;
   company.package = document.querySelector('input[name="piPackage"]:checked')?.value || undefined;
-  company.members = projectInfoEmployeePicker.getValue();
+  company.members = validation.members;
   company.updatedAt = new Date().toISOString();
   saveCompanies(currentUser, companies);
   currentCompany = company;
@@ -320,18 +323,83 @@ function saveProjectInfo() {
 }
 
 function openCreateWorkspaceModal() {
+  clearWorkspaceValidation('cw');
   document.getElementById('cwCompanyName').value = '';
   document.getElementById('cwEmployeeCount').value = '';
   document.getElementById('cwNotes').value = '';
   createWorkspaceEmployeePicker.reset();
   document.querySelectorAll('input[name="cwPackage"]').forEach(r => r.checked = false);
   document.getElementById('createWorkspaceModal').removeAttribute('hidden');
-  document.getElementById('cwCompanyName').focus();
+  document.getElementById('cwEmployeeSearch').focus();
 }
 
 function closeCreateWorkspaceModal() {
   createWorkspaceEmployeePicker.reset();
+  clearWorkspaceValidation('cw');
   document.getElementById('createWorkspaceModal').setAttribute('hidden', '');
+}
+
+function setWorkspaceFieldError(input, error, message = '') {
+  const invalid = Boolean(message);
+  input.classList.toggle('workspace-field-invalid', invalid);
+  input.setAttribute('aria-invalid', String(invalid));
+  error.textContent = message;
+  error.hidden = !invalid;
+}
+
+function clearWorkspaceValidation(prefix) {
+  const companyInput = document.getElementById(`${prefix}CompanyName`);
+  const implementorInput = document.getElementById(`${prefix}EmployeeSearch`);
+  const companyError = document.getElementById(`${prefix}CompanyNameError`);
+  const implementorError = document.getElementById(`${prefix}ImplementorError`);
+  setWorkspaceFieldError(companyInput, companyError);
+  setWorkspaceFieldError(implementorInput, implementorError);
+}
+
+function validateWorkspaceRequiredFields(prefix, employeePicker) {
+  const companyInput = document.getElementById(`${prefix}CompanyName`);
+  const implementorInput = document.getElementById(`${prefix}EmployeeSearch`);
+  const companyError = document.getElementById(`${prefix}CompanyNameError`);
+  const implementorError = document.getElementById(`${prefix}ImplementorError`);
+  const name = companyInput.value.trim();
+  const members = employeePicker.getValue();
+
+  setWorkspaceFieldError(
+    implementorInput,
+    implementorError,
+    members.length ? '' : 'Please select at least one implementor.'
+  );
+  setWorkspaceFieldError(
+    companyInput,
+    companyError,
+    name ? '' : 'Company name is required.'
+  );
+
+  if (!members.length) implementorInput.focus();
+  else if (!name) companyInput.focus();
+
+  return { valid: Boolean(members.length && name), name, members };
+}
+
+function bindWorkspaceValidation(prefix, employeePicker) {
+  const companyInput = document.getElementById(`${prefix}CompanyName`);
+  const implementorPicker = document.getElementById(`${prefix}EmployeePicker`);
+  companyInput.addEventListener('input', () => {
+    if (companyInput.value.trim()) {
+      setWorkspaceFieldError(
+        companyInput,
+        document.getElementById(`${prefix}CompanyNameError`)
+      );
+    }
+  });
+  implementorPicker.addEventListener('employeechange', () => {
+    if (employeePicker.getValue().length) {
+      setWorkspaceFieldError(
+        document.getElementById(`${prefix}EmployeeSearch`),
+        document.getElementById(`${prefix}ImplementorError`)
+      );
+    }
+  });
 }
 
 function clampEmployeeInput(el) {
@@ -348,6 +416,8 @@ function bindDashboardEvents() {
   projectInfoEmployeePicker = createEmployeePicker(
     document.getElementById('piEmployeePicker')
   );
+  bindWorkspaceValidation('cw', createWorkspaceEmployeePicker);
+  bindWorkspaceValidation('pi', projectInfoEmployeePicker);
   clampEmployeeInput(document.getElementById('cwEmployeeCount'));
   document.getElementById('openCreateWorkspaceBtn').addEventListener('click', openCreateWorkspaceModal);
   document.getElementById('createWorkspaceCloseBtn').addEventListener('click', closeCreateWorkspaceModal);
@@ -356,13 +426,18 @@ function bindDashboardEvents() {
     if (e.target === e.currentTarget) closeCreateWorkspaceModal();
   });
   document.getElementById('createWorkspaceConfirmBtn').addEventListener('click', () => {
-    const name = document.getElementById('cwCompanyName').value;
+    const validation = validateWorkspaceRequiredFields('cw', createWorkspaceEmployeePicker);
+    if (!validation.valid) return;
     const employeeCount = document.getElementById('cwEmployeeCount').value;
     const notes = document.getElementById('cwNotes').value;
     const pkg = document.querySelector('input[name="cwPackage"]:checked')?.value || '';
-    const members = createWorkspaceEmployeePicker.getValue();
     try {
-      createCompany(currentUser, name, { employeeCount, package: pkg, notes, members });
+      createCompany(currentUser, validation.name, {
+        employeeCount,
+        package: pkg,
+        notes,
+        members: validation.members
+      });
       closeCreateWorkspaceModal();
       renderCompanyGrid();
       showToast('Workspace created');

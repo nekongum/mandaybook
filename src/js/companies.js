@@ -70,7 +70,8 @@ export function saveCompanies(user, companies) {
 
 export function createCompany(user, name, { employeeCount, package: pkg, notes, members = [] } = {}) {
   const cleanName = name.trim();
-  if (!cleanName) throw new Error('Please enter a company name.');
+  if (!cleanName) throw new Error('Company name is required.');
+  if (!members.length) throw new Error('Please select at least one implementor.');
 
   const companies = loadCompanies(user);
   const duplicate = companies.some(

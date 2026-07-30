@@ -654,27 +654,37 @@
       <button type="button" class="profile-close" id="projectInfoCloseBtn">×</button>
     </div>
 
+    <div class="employee-picker" id="piEmployeePicker">
+      <label for="piEmployeeSearch">
+        <span class="workspace-field-label">
+          Implementor <span style="color:var(--danger)">*</span>
+        </span>
+      </label>
+      <div class="employee-picker-control">
+        <input type="search" id="piEmployeeSearch" placeholder="Search employee name"
+          autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-controls="piEmployeeResults" aria-describedby="piImplementorError"
+          aria-expanded="false" aria-required="true" data-employee-search>
+        <div class="employee-picker-results" id="piEmployeeResults" role="listbox"
+          data-employee-results hidden></div>
+      </div>
+      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
+      <span class="workspace-field-error" id="piImplementorError" role="alert" hidden></span>
+    </div>
+
     <label>
-      Company name
-      <input type="text" id="piCompanyName" autocomplete="off">
+      <span class="workspace-field-label">
+        Company name <span style="color:var(--danger)">*</span>
+      </span>
+      <input type="text" id="piCompanyName" autocomplete="off" required
+        aria-describedby="piCompanyNameError">
+      <span class="workspace-field-error" id="piCompanyNameError" role="alert" hidden></span>
     </label>
 
     <label>
       Number of employees
       <input type="number" id="piEmployeeCount" min="1">
     </label>
-
-    <div class="employee-picker" id="piEmployeePicker">
-      <label for="piEmployeeSearch">Project members</label>
-      <div class="employee-picker-control">
-        <input type="search" id="piEmployeeSearch" placeholder="Search employee name"
-          autocomplete="off" role="combobox" aria-autocomplete="list"
-          aria-controls="piEmployeeResults" aria-expanded="false" data-employee-search>
-        <div class="employee-picker-results" id="piEmployeeResults" role="listbox"
-          data-employee-results hidden></div>
-      </div>
-      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
-    </div>
 
     <fieldset class="cw-package-field">
       <legend>Package</legend>
@@ -709,27 +719,37 @@
       <button type="button" class="profile-close" id="createWorkspaceCloseBtn">×</button>
     </div>
 
+    <div class="employee-picker" id="cwEmployeePicker">
+      <label for="cwEmployeeSearch">
+        <span class="workspace-field-label">
+          Implementor <span style="color:var(--danger)">*</span>
+        </span>
+      </label>
+      <div class="employee-picker-control">
+        <input type="search" id="cwEmployeeSearch" placeholder="Search employee name"
+          autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-controls="cwEmployeeResults" aria-describedby="cwImplementorError"
+          aria-expanded="false" aria-required="true" data-employee-search>
+        <div class="employee-picker-results" id="cwEmployeeResults" role="listbox"
+          data-employee-results hidden></div>
+      </div>
+      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
+      <span class="workspace-field-error" id="cwImplementorError" role="alert" hidden></span>
+    </div>
+
     <label>
-      Company name <span style="color:var(--danger)">*</span>
-      <input type="text" id="cwCompanyName" placeholder="e.g. Acme Co." autocomplete="organization">
+      <span class="workspace-field-label">
+        Company name <span style="color:var(--danger)">*</span>
+      </span>
+      <input type="text" id="cwCompanyName" placeholder="e.g. Acme Co."
+        autocomplete="organization" required aria-describedby="cwCompanyNameError">
+      <span class="workspace-field-error" id="cwCompanyNameError" role="alert" hidden></span>
     </label>
 
     <label>
       Number of employees
       <input type="number" id="cwEmployeeCount" placeholder="e.g. 50" min="1">
     </label>
-
-    <div class="employee-picker" id="cwEmployeePicker">
-      <label for="cwEmployeeSearch">Project members</label>
-      <div class="employee-picker-control">
-        <input type="search" id="cwEmployeeSearch" placeholder="Search employee name"
-          autocomplete="off" role="combobox" aria-autocomplete="list"
-          aria-controls="cwEmployeeResults" aria-expanded="false" data-employee-search>
-        <div class="employee-picker-results" id="cwEmployeeResults" role="listbox"
-          data-employee-results hidden></div>
-      </div>
-      <ul class="employee-picker-selected" data-selected-employees hidden></ul>
-    </div>
 
     <fieldset class="cw-package-field">
       <legend>Package</legend>
