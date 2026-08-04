@@ -312,7 +312,7 @@ function drawActualSection(ws, startRow, c) {
   ws.mergeCells(`B${r}:D${r}`);
   ws.getCell(`B${r}`).value = 'TOTAL ACTUAL';
   ws.getCell(`E${r}`).value = c.totalHoursOnly;
-  ws.getCell(`E${r}`).numFmt = '0" ชม."';
+  ws.getCell(`E${r}`).numFmt = '0" hrs."';
   ws.getCell(`F${r}`).value = c.totalMinutes;
   ws.getCell(`F${r}`).numFmt = '0" น."';
   const sumActualMins = state.actual.reduce((s, x) => s + num(x.minutes), 0);
@@ -341,11 +341,11 @@ function drawSummarySection(ws, startRow, c) {
 
   const summaryRows = [
     ['Manday Purchased',                          c.purchased,            '0.00" md"'],
-    ['Total Hours Available',                     c.purchased * c.hpm,    '0.00" ชม."'],
+    ['Total Hours Available',                     c.purchased * c.hpm,    '0.00" hrs."'],
     ['Total Planned (Section 1)',                 c.planMd,               '0.00" md"'],
     ['Total Actual Used (Section 2)',             c.actualMd,             '0.00" md"'],
     ['Remaining Mandays (Purchased − Actual)',    c.remainingMd,          '0.00" md"'],
-    ['Remaining Hours',                           c.remainingHrs,         '0.00" ชม."'],
+    ['Remaining Hours',                           c.remainingHrs,         '0.00" hrs."'],
     ['% Used',                                    c.pct,                  '0.0%'],
     ['Plan vs Purchased (over/under)',            c.planMd - c.purchased, '+0.00" md";-0.00" md";"0 md"']
   ];

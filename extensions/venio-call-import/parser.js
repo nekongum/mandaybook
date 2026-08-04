@@ -4,12 +4,31 @@
   const CALL_TYPE_CODE = 110011;
 
   function recordsFromPayload(payload) {
-    const data = payload?.data;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.value)) return data.value;
-    if (data && typeof data === 'object') return [data];
-    if (Array.isArray(payload)) return payload;
-    return [];
+    const records = [];
+    const visited = new WeakSet();
+
+    function visit(value) {
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      if (!value || typeof value !== 'object' || visited.has(value)) return;
+      visited.add(value);
+
+      if (
+        Object.hasOwn(value, 'conversationId') ||
+        Object.hasOwn(value, 'type') ||
+        Object.hasOwn(value, 'typeName')
+      ) records.push(value);
+
+      // Venio returns calls both directly and nested inside Task detail payloads.
+      if (Object.hasOwn(value, 'data')) visit(value.data);
+      if (Object.hasOwn(value, 'value')) visit(value.value);
+      if (Object.hasOwn(value, 'conversation')) visit(value.conversation);
+    }
+
+    visit(payload);
+    return records;
   }
 
   function sanitizeRecord(record, requestedCustomerId) {
@@ -20,6 +39,8 @@
 
     const activityId = Number(record.conversationId);
     const customerId = Number(record.customerId ?? record.customer?.customerId ?? requestedCustomerId);
+    const expectedCustomerId = Number(requestedCustomerId);
+    const hasExpectedCustomerId = Number.isSafeInteger(expectedCustomerId) && expectedCustomerId > 0;
     const implementorUserId = typeof record.createdByUserId === 'string'
       ? record.createdByUserId.trim()
       : '';
@@ -27,7 +48,7 @@
     if (
       !Number.isSafeInteger(activityId) || activityId <= 0 ||
       !Number.isSafeInteger(customerId) || customerId <= 0 ||
-      customerId !== requestedCustomerId ||
+      hasExpectedCustomerId && customerId !== expectedCustomerId ||
       !implementorUserId ||
       !Number.isFinite(durationMinutes) || durationMinutes < 0
     ) return null;
@@ -57,7 +78,29 @@
     };
   }
 
-  const api = { recordsFromPayload, sanitizeRecord, sanitizeResponse };
+  function sanitizeResponses(payload) {
+    const capturesByCustomerId = new Map();
+    const seenActivities = new Set();
+
+    recordsFromPayload(payload).forEach((record) => {
+      const activity = sanitizeRecord(record);
+      if (!activity) return;
+      const activityKey = `${activity.customerId}:${activity.activityId}`;
+      if (seenActivities.has(activityKey)) return;
+      seenActivities.add(activityKey);
+      if (!capturesByCustomerId.has(activity.customerId)) {
+        capturesByCustomerId.set(activity.customerId, {
+          customerId: activity.customerId,
+          activities: []
+        });
+      }
+      capturesByCustomerId.get(activity.customerId).activities.push(activity);
+    });
+
+    return [...capturesByCustomerId.values()];
+  }
+
+  const api = { recordsFromPayload, sanitizeRecord, sanitizeResponse, sanitizeResponses };
   root.VenioCallParser = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

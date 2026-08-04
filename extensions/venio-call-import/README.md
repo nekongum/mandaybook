@@ -18,7 +18,8 @@ session token, customer name, notes, contacts, attachments, or audio URLs.
 
 1. Sign in to Venio at `https://app.veniocrm.com`.
 2. Open the target customer's Activity/Conversation view. The extension records
-   sanitized Call activities returned by Venio for that customer.
+   sanitized Call activities returned by Venio across list, pagination, and
+   Conversation Followup task responses for that customer.
 3. Open the matching Manday Project.
 4. Click **Import from Venio** in Actual Work Log.
 5. On the first import, confirm the explicit customer link. The numeric Venio
@@ -47,7 +48,8 @@ same exact origin to `allowedOrigins` in `mandaybook-content.js`.
 - Activity date: `dateConversation`
 - Customer key: `customerId`
 
-The extension supports a single object in `data`, an array in `data`, and an
-array in `data.value`. It imports only responses naturally observed while the
-Venio page is open; it does not extract a browser token to make independent API
-requests.
+The extension supports a single object in `data`, an array in `data`, an array
+in `data.value`, a root array, and a call nested in `data.conversation`. Customer
+IDs are read from the sanitized Call records rather than inferred from request
+URLs. It imports only responses naturally observed while the Venio page is
+open; it does not extract a browser token to make independent API requests.

@@ -49,3 +49,40 @@ test('supports data.value pagination envelopes without forwarding notes or conta
   assert.equal('contact' in result.activities[0], false);
   assert.equal('customerName' in result, false);
 });
+
+test('extracts a call nested inside a Conversation Followup task', () => {
+  const result = parser.sanitizeResponse({
+    data: {
+      taskId: 600768,
+      subject: 'Conversation Followup',
+      customerId: 1718464,
+      conversation: call({ conversationId: 1002657, callMinutes: 2 })
+    }
+  }, 1718464);
+
+  assert.deepEqual(result.activities.map(({ activityId, durationMinutes }) => ({
+    activityId,
+    durationMinutes
+  })), [{ activityId: 1002657, durationMinutes: 2 }]);
+});
+
+test('groups captures by the customer ID in each call instead of an API URL ID', () => {
+  const captures = parser.sanitizeResponses([
+    call({
+      createdByUserId: '01a4fa05-8e5d-4494-af3c-f8a99e5eb57b',
+      conversationId: 924472,
+      customerId: 1612636,
+      callMinutes: 12
+    }),
+    call({ conversationId: 2000001, customerId: 1718464 }),
+    call({ conversationId: 2000001, customerId: 1718464 })
+  ]);
+
+  assert.deepEqual(captures.map((capture) => ({
+    customerId: capture.customerId,
+    activityIds: capture.activities.map((activity) => activity.activityId)
+  })), [
+    { customerId: 1612636, activityIds: [924472] },
+    { customerId: 1718464, activityIds: [2000001] }
+  ]);
+});

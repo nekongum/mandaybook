@@ -5,7 +5,7 @@
   window.__mandaybookVenioCallBridgeInstalled = true;
 
   const MESSAGE_TYPE = 'MANDAYBOOK_VENIO_CALL_CAPTURE';
-  const CONVERSATION_PATH = /\/api\/V4\/Customer\/CustomerConversation\/(\d+)/i;
+  const VENIO_API_PATH = /\/api\//i;
 
   function getRequestUrl(input) {
     if (typeof input === 'string') return input;
@@ -13,27 +13,22 @@
     return input?.url || '';
   }
 
-  function customerIdFromUrl(url) {
-    const match = CONVERSATION_PATH.exec(url || '');
-    return match ? Number(match[1]) : null;
-  }
-
-  function publishPayload(payload, requestUrl) {
-    const requestedCustomerId = customerIdFromUrl(requestUrl);
-    if (!Number.isSafeInteger(requestedCustomerId) || requestedCustomerId <= 0) return;
-    window.postMessage({
-      type: MESSAGE_TYPE,
-      payload: window.VenioCallParser.sanitizeResponse(payload, requestedCustomerId)
-    }, window.location.origin);
+  function publishPayload(payload) {
+    window.VenioCallParser.sanitizeResponses(payload).forEach((capture) => {
+      window.postMessage({
+        type: MESSAGE_TYPE,
+        payload: capture
+      }, window.location.origin);
+    });
   }
 
   const originalFetch = window.fetch;
   window.fetch = async function mandaybookObservedFetch(...args) {
     const response = await originalFetch.apply(this, args);
     const requestUrl = getRequestUrl(args[0]);
-    if (CONVERSATION_PATH.test(requestUrl)) {
+    if (VENIO_API_PATH.test(requestUrl)) {
       response.clone().json()
-        .then((payload) => publishPayload(payload, requestUrl))
+        .then(publishPayload)
         .catch(() => {});
     }
     return response;
@@ -46,10 +41,13 @@
     return originalOpen.call(this, method, url, ...rest);
   };
   XMLHttpRequest.prototype.send = function mandaybookObservedSend(...args) {
-    if (CONVERSATION_PATH.test(this.__mandaybookRequestUrl || '')) {
+    if (VENIO_API_PATH.test(this.__mandaybookRequestUrl || '')) {
       this.addEventListener('load', () => {
         try {
-          publishPayload(JSON.parse(this.responseText), this.__mandaybookRequestUrl);
+          const payload = this.responseType === 'json'
+            ? this.response
+            : JSON.parse(this.responseText);
+          publishPayload(payload);
         } catch (_) {}
       }, { once: true });
     }
