@@ -429,8 +429,15 @@
         </div>
       </div>
       <div class="venio-call-import">
+        <div class="venio-import-tabs" role="tablist" aria-label="Venio activity type">
+          <button type="button" class="venio-import-tab active" role="tab"
+                  aria-selected="true" data-venio-import-kind="call">Calls</button>
+          <button type="button" class="venio-import-tab" role="tab"
+                  aria-selected="false" tabindex="-1"
+                  data-venio-import-kind="meeting">Meetings</button>
+        </div>
         <select id="venioCallImplementor" aria-label="Implementor for Venio call import" hidden></select>
-        <button type="button" class="btn" id="importVenioCallsBtn">Import from Venio</button>
+        <button type="button" class="btn" id="importVenioActivityBtn">Import Calls</button>
         <span id="venioCallImportStatus" role="status" aria-live="polite"></span>
       </div>
     </div>

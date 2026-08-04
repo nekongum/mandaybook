@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Mandaybook Venio Call Import",
+  "name": "Mandaybook Venio Activity Import",
   "version": "1.0.0",
-  "description": "Imports sanitized Venio call durations into Mandaybook without exposing session credentials.",
+  "description": "Imports sanitized Venio call and meeting durations into Mandaybook without exposing session credentials.",
   "permissions": ["storage"],
   "host_permissions": [
     "https://app.veniocrm.com/*",

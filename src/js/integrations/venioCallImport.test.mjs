@@ -10,12 +10,13 @@ globalThis.window = {
 
 const source = await readFile(new URL('./venioCallImport.js', import.meta.url), 'utf8');
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-const { validateVenioCallPayload } = await import(moduleUrl);
+const { validateVenioCallPayload, validateVenioMeetingPayload } = await import(moduleUrl);
 
 test('validates customer and implementor and recomputes total minutes', () => {
   const result = validateVenioCallPayload({
     customerId: 1718464,
     implementorUserId: 'user-1',
+    activityKind: 'call',
     totalCallMinutes: 999,
     activities: [
       { customerId: 1718464, implementorUserId: 'user-1', activityId: 1, durationMinutes: 2 },
@@ -31,11 +32,13 @@ test('rejects a mismatched customer or implementor payload', () => {
   assert.throws(() => validateVenioCallPayload({
     customerId: 999,
     implementorUserId: 'user-1',
+    activityKind: 'call',
     activities: []
   }, 1718464, 'user-1'), /mismatched data/);
   assert.throws(() => validateVenioCallPayload({
     customerId: 1718464,
     implementorUserId: 'user-2',
+    activityKind: 'call',
     activities: []
   }, 1718464, 'user-1'), /mismatched data/);
 });
@@ -44,6 +47,7 @@ test('rejects negative duration and ignores invalid activity records', () => {
   const result = validateVenioCallPayload({
     customerId: 1718464,
     implementorUserId: 'user-1',
+    activityKind: 'call',
     activities: [
       { customerId: 1718464, implementorUserId: 'user-1', activityId: 1, durationMinutes: -2 },
       { customerId: 1718464, implementorUserId: 'user-1', activityId: 2, durationMinutes: 5 }
@@ -51,4 +55,29 @@ test('rejects negative duration and ignores invalid activity records', () => {
   }, 1718464, 'user-1');
   assert.deepEqual(result.activities.map((item) => item.activityId), [2]);
   assert.equal(result.totalCallMinutes, 5);
+});
+
+test('validates meeting activities separately from calls', () => {
+  const result = validateVenioMeetingPayload({
+    customerId: 1766750,
+    implementorUserId: 'user-1',
+    activityKind: 'meeting',
+    activities: [{
+      customerId: 1766750,
+      implementorUserId: 'user-1',
+      activityKind: 'meeting',
+      activityId: 3104988,
+      activityDate: '2026-06-29T14:00:00+0700',
+      durationMinutes: 90
+    }]
+  }, 1766750, 'user-1');
+
+  assert.equal(result.totalMeetingMinutes, 90);
+  assert.equal(result.activities.length, 1);
+  assert.throws(() => validateVenioCallPayload({
+    customerId: 1766750,
+    implementorUserId: 'user-1',
+    activityKind: 'meeting',
+    activities: []
+  }, 1766750, 'user-1'), /mismatched data/);
 });

@@ -18,6 +18,12 @@
         customerId: request.payload?.customerId,
         implementorUserId: request.payload?.implementorUserId
       };
+    } else if (request.type === 'VENIO_MEETING_TIME_IMPORT_REQUEST') {
+      extensionMessage = {
+        type: 'GET_VENIO_MEETING_DATA',
+        customerId: request.payload?.customerId,
+        implementorUserId: request.payload?.implementorUserId
+      };
     } else {
       return;
     }

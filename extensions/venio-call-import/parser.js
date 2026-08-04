@@ -2,6 +2,7 @@
   'use strict';
 
   const CALL_TYPE_CODE = 110011;
+  const MEETING_REPORT_TYPE_CODE = 210016;
 
   function recordsFromPayload(payload) {
     const records = [];
@@ -35,16 +36,24 @@
     if (!record || typeof record !== 'object') return null;
     const isCall = record.type === CALL_TYPE_CODE ||
       (record.type === null || record.type === undefined) && record.typeName === 'Call';
-    if (!isCall) return null;
+    const isMeetingReport = record.type === MEETING_REPORT_TYPE_CODE;
+    const isMeeting = isMeetingReport;
+    if (!isCall && !isMeeting) return null;
 
-    const activityId = Number(record.conversationId);
+    const activityId = Number(isMeeting ? record.refId : record.conversationId);
     const customerId = Number(record.customerId ?? record.customer?.customerId ?? requestedCustomerId);
     const expectedCustomerId = Number(requestedCustomerId);
     const hasExpectedCustomerId = Number.isSafeInteger(expectedCustomerId) && expectedCustomerId > 0;
-    const implementorUserId = typeof record.createdByUserId === 'string'
-      ? record.createdByUserId.trim()
+    const rawImplementorUserId = isMeeting ? record.userId : record.createdByUserId;
+    const implementorUserId = typeof rawImplementorUserId === 'string'
+      ? rawImplementorUserId.trim()
       : '';
-    const durationMinutes = Number(record.callMinutes);
+    const meetingStart = Date.parse(record.feedItem?.dateStart || '');
+    const meetingEnd = Date.parse(record.feedItem?.dateEnd || '');
+    const durationMinutes = isMeeting
+      ? Math.round((meetingEnd - meetingStart) / 60_000)
+      : Number(record.callMinutes);
+    const activityDate = isMeeting ? record.feedItem?.dateStart : record.dateConversation;
     if (
       !Number.isSafeInteger(activityId) || activityId <= 0 ||
       !Number.isSafeInteger(customerId) || customerId <= 0 ||
@@ -57,7 +66,8 @@
       customerId,
       implementorUserId,
       activityId,
-      activityDate: typeof record.dateConversation === 'string' ? record.dateConversation : '',
+      activityKind: isMeeting ? 'meeting' : 'call',
+      activityDate: typeof activityDate === 'string' ? activityDate : '',
       durationMinutes
     };
   }
@@ -85,7 +95,7 @@
     recordsFromPayload(payload).forEach((record) => {
       const activity = sanitizeRecord(record);
       if (!activity) return;
-      const activityKey = `${activity.customerId}:${activity.activityId}`;
+      const activityKey = `${activity.customerId}:${activity.activityKind}:${activity.activityId}`;
       if (seenActivities.has(activityKey)) return;
       seenActivities.add(activityKey);
       if (!capturesByCustomerId.has(activity.customerId)) {
@@ -94,7 +104,8 @@
           activities: []
         });
       }
-      capturesByCustomerId.get(activity.customerId).activities.push(activity);
+      const activities = capturesByCustomerId.get(activity.customerId).activities;
+      activities.push(activity);
     });
 
     return [...capturesByCustomerId.values()];

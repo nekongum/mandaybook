@@ -19,7 +19,8 @@ import { initDropdown } from './interactions/dropdown.js';
 import { createEmployeePicker } from './interactions/employeePicker.js';
 import {
   getLatestVenioCustomerContext,
-  importVenioCallTime
+  importVenioCallTime,
+  importVenioMeetingTime
 } from './integrations/venioCallImport.js';
 
 import { exportPDF } from './export/pdf.js';
@@ -58,6 +59,7 @@ let currentUser = null;
 let currentCompany = null;
 let companySearchQuery = '';
 let companySortMode = 'default';
+let venioImportKind = 'call';
 
 // Drag and drop state
 let dragSrcId = null;
@@ -255,7 +257,10 @@ function bindEvents() {
   // Add row buttons
   document.getElementById('addPlanBtn').addEventListener('click', addPlanRow);
   document.getElementById('addActualBtn').addEventListener('click', addActualRow);
-  document.getElementById('importVenioCallsBtn').addEventListener('click', handleVenioCallImport);
+  document.getElementById('importVenioActivityBtn').addEventListener('click', handleVenioActivityImport);
+  document.querySelectorAll('[data-venio-import-kind]').forEach((tab) => {
+    tab.addEventListener('click', () => setVenioImportKind(tab.dataset.venioImportKind));
+  });
 
 
   // Download dropdown + actions
@@ -345,7 +350,23 @@ function syncVenioCallImportControls() {
   `).join('');
   if (members.some((member) => member.userId === previousValue)) select.value = previousValue;
   select.hidden = members.length <= 1;
-  document.getElementById('importVenioCallsBtn').disabled = members.length === 0;
+  document.getElementById('importVenioActivityBtn').disabled = members.length === 0;
+  setVenioImportKind(venioImportKind);
+  setVenioCallImportStatus('');
+}
+
+function setVenioImportKind(kind) {
+  venioImportKind = kind === 'meeting' ? 'meeting' : 'call';
+  document.querySelectorAll('[data-venio-import-kind]').forEach((tab) => {
+    const selected = tab.dataset.venioImportKind === venioImportKind;
+    tab.classList.toggle('active', selected);
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  const button = document.getElementById('importVenioActivityBtn');
+  if (button) button.textContent = venioImportKind === 'meeting'
+    ? 'Import Meetings'
+    : 'Import Calls';
   setVenioCallImportStatus('');
 }
 
@@ -359,10 +380,14 @@ function linkCurrentCompanyToVenio(context) {
   currentCompany = company;
 }
 
-function importedVenioActivityIds() {
-  return new Set(state.actual.flatMap((row) =>
-    Array.isArray(row._venioActivityIds) ? row._venioActivityIds.map(Number) : []
-  ));
+function importedVenioActivityKeys() {
+  return new Set(state.actual.flatMap((row) => {
+    const keys = Array.isArray(row._venioActivityKeys) ? row._venioActivityKeys : [];
+    const legacyCallKeys = Array.isArray(row._venioActivityIds)
+      ? row._venioActivityIds.map((activityId) => `call:${Number(activityId)}`)
+      : [];
+    return [...keys, ...legacyCallKeys];
+  }));
 }
 
 async function ensureVenioCustomerLink() {
@@ -382,10 +407,23 @@ async function ensureVenioCustomerLink() {
   return context.customerId;
 }
 
-async function handleVenioCallImport() {
-  const button = document.getElementById('importVenioCallsBtn');
+async function handleVenioActivityImport() {
+  const button = document.getElementById('importVenioActivityBtn');
   const select = document.getElementById('venioCallImplementor');
   const members = Array.isArray(currentCompany?.members) ? currentCompany.members : [];
+  const config = venioImportKind === 'meeting'
+    ? {
+        kind: 'meeting',
+        task: 'Meeting',
+        noun: 'meeting',
+        importer: importVenioMeetingTime
+      }
+    : {
+        kind: 'call',
+        task: 'Phone Call',
+        noun: 'call',
+        importer: importVenioCallTime
+      };
   const selectedUserId = select.value || members[0]?.userId || '';
   if (!selectedUserId || !members.some((member) => member.userId === selectedUserId)) {
     setVenioCallImportStatus('Select an implementor before importing.', { error: true });
@@ -394,17 +432,19 @@ async function handleVenioCallImport() {
 
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
-  setVenioCallImportStatus('Importing call activity from Venio...');
+  setVenioCallImportStatus(`Importing ${config.noun} activity from Venio...`);
   try {
     const customerId = await ensureVenioCustomerLink();
-    const result = await importVenioCallTime(customerId, selectedUserId);
-    const importedIds = importedVenioActivityIds();
-    const activities = result.activities.filter((activity) => !importedIds.has(activity.activityId));
+    const result = await config.importer(customerId, selectedUserId);
+    const importedKeys = importedVenioActivityKeys();
+    const activities = result.activities.filter(
+      (activity) => !importedKeys.has(`${config.kind}:${activity.activityId}`)
+    );
     if (!activities.length) {
       setVenioCallImportStatus(
         result.activities.length
-          ? 'No new call activity found for this implementor.'
-          : 'No call activity found for this implementor.'
+          ? `No new ${config.noun} activity found for this implementor.`
+          : `No ${config.noun} activity found for this implementor.`
       );
       return;
     }
@@ -417,14 +457,14 @@ async function handleVenioCallImport() {
       .filter((activity) => activity.durationMinutes > 0)
       .sort((a, b) => (a.activityDate || '').localeCompare(b.activityDate || ''));
     if (!importableActivities.length) {
-      setVenioCallImportStatus('No call activity found for this implementor.');
+      setVenioCallImportStatus(`No ${config.noun} activity found for this implementor.`);
       return;
     }
     const fallbackDate = new Date().toISOString().slice(0, 10);
     const importedAt = new Date().toISOString();
     importableActivities.forEach((activity) => {
       state.actual.push({
-        task: 'Phone Call',
+        task: config.task,
         date: activity.activityDate.slice(0, 10) || fallbackDate,
         hours: Math.floor(activity.durationMinutes / 60),
         minutes: activity.durationMinutes % 60,
@@ -432,7 +472,8 @@ async function handleVenioCallImport() {
         createdAt: importedAt,
         _venioCustomerId: customerId,
         _venioImplementorUserId: selectedUserId,
-        _venioActivityIds: [activity.activityId]
+        _venioActivityKeys: [`${config.kind}:${activity.activityId}`],
+        ...(config.kind === 'call' ? { _venioActivityIds: [activity.activityId] } : {})
       });
     });
     const totalMinutes = importableActivities.reduce(
@@ -444,7 +485,7 @@ async function handleVenioCallImport() {
     renderClientView();
     saveState();
     setVenioCallImportStatus(
-      `Imported ${importableActivities.length} call activities (${totalMinutes} minutes).`
+      `Imported ${importableActivities.length} ${config.noun} activities (${totalMinutes} minutes).`
     );
   } catch (error) {
     setVenioCallImportStatus(

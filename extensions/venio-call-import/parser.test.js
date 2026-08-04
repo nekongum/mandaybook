@@ -25,6 +25,7 @@ test('extracts only confirmed call fields from a single CustomerConversation res
       customerId: 1718464,
       implementorUserId: 'user-1',
       activityId: 1002819,
+      activityKind: 'call',
       activityDate: '2026-07-31T18:10:12',
       durationMinutes: 4
     }]
@@ -85,4 +86,78 @@ test('groups captures by the customer ID in each call instead of an API URL ID',
     { customerId: 1612636, activityIds: [924472] },
     { customerId: 1718464, activityIds: [2000001] }
   ]);
+});
+
+test('calculates meeting duration from feed start and end timestamps', () => {
+  const captures = parser.sanitizeResponses({
+    data: [{
+      type: 210016,
+      refId: '3104988',
+      userId: '5587e171-cacf-4d5e-95cc-d7c51d54004b',
+      customerId: 1766750,
+      description: 'must not leave the Venio page',
+      feedItem: {
+        title: 'Customer onboarding',
+        dateStart: '2026-06-29T14:00:00+0700',
+        dateEnd: '2026-06-29T15:30:00+0700'
+      }
+    }]
+  });
+
+  assert.deepEqual(captures, [{
+    customerId: 1766750,
+    activities: [{
+      customerId: 1766750,
+      implementorUserId: '5587e171-cacf-4d5e-95cc-d7c51d54004b',
+      activityId: 3104988,
+      activityKind: 'meeting',
+      activityDate: '2026-06-29T14:00:00+0700',
+      durationMinutes: 90
+    }]
+  }]);
+});
+
+test('rejects meetings with missing or reversed timestamps', () => {
+  const meeting = {
+    type: 210016,
+    refId: '3104988',
+    userId: 'user-1',
+    customerId: 1766750,
+    feedItem: {
+      dateStart: '2026-06-29T15:30:00+0700',
+      dateEnd: '2026-06-29T14:00:00+0700'
+    }
+  };
+  assert.deepEqual(parser.sanitizeResponses([meeting]), []);
+  assert.deepEqual(parser.sanitizeResponses([{ ...meeting, feedItem: {} }]), []);
+});
+
+test('imports only completed meeting reports and ignores plans', () => {
+  const planned = {
+    type: 210001,
+    refId: '3096671',
+    userId: '5587e171-cacf-4d5e-95cc-d7c51d54004b',
+    customerId: 1766750,
+    feedItem: {
+      statusName: 'PendingReport',
+      dateStart: '2026-06-22T15:00:00+0700',
+      dateEnd: '2026-06-22T16:00:00+0700'
+    }
+  };
+  const assignedPlan = { ...planned, type: 210002, refId: '3092603' };
+  const reported = {
+    ...planned,
+    type: 210016,
+    feedItem: {
+      statusName: 'Create Activity Report',
+      dateStart: '2026-06-22T15:00:00+0700',
+      dateEnd: '2026-06-22T16:30:00+0700'
+    }
+  };
+
+  const captures = parser.sanitizeResponses({ data: [planned, assignedPlan, reported] });
+  assert.deepEqual(captures[0].activities.map((activity) => ({
+    activityId: activity.activityId,
+    durationMinutes: activity.durationMinutes
+  })), [{ activityId: 3096671, durationMinutes: 90 }]);
 });

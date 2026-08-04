@@ -1,9 +1,10 @@
-# Mandaybook Venio Call Import
+# Mandaybook Venio Activity Import
 
-This Manifest V3 extension captures only the minimum call fields from
-`CustomerConversation` responses that the signed-in Venio page has already
-requested. It never reads, stores, or forwards the Venio Authorization header,
-session token, customer name, notes, contacts, attachments, or audio URLs.
+This Manifest V3 extension captures only the minimum call and meeting fields
+from responses that the signed-in Venio page has already requested. It never
+reads, stores, or forwards the Venio Authorization header, session token,
+customer name, notes, contacts, attachments, meeting descriptions, or audio
+URLs.
 
 ## Install locally
 
@@ -18,19 +19,21 @@ session token, customer name, notes, contacts, attachments, or audio URLs.
 
 1. Sign in to Venio at `https://app.veniocrm.com`.
 2. Open the target customer's Activity/Conversation view. The extension records
-   sanitized Call activities returned by Venio across list, pagination, and
-   Conversation Followup task responses for that customer.
+   sanitized Call and Meeting activities returned by Venio across list,
+   pagination, and detail responses for that customer.
 3. Open the matching Manday Project.
-4. Click **Import from Venio** in Actual Work Log.
+4. Choose the **Calls** or **Meetings** tab and click its import button in
+   Actual Work Log.
 5. On the first import, confirm the explicit customer link. The numeric Venio
    customer ID is saved on that Mandaybook company; company names are not used
    for automatic matching.
 6. If a project has several implementors, choose one before importing.
 
-The import appends one normal `Phone Call` Actual Work row per activity. Each row
-uses that activity's own `dateConversation` and `callMinutes`. Existing
-Mandaybook calculation functions then calculate totals and mandays normally.
-Re-imported `conversationId` values are ignored.
+Call imports append a `Phone Call` Actual Work row using `dateConversation` and
+`callMinutes`. Meeting imports append a `Meeting` row and calculate its duration
+from `feedItem.dateStart` through `feedItem.dateEnd`. Existing Mandaybook
+calculation functions then calculate totals and mandays normally. Re-imported
+activity IDs are ignored separately for calls and meetings.
 
 ## Production host
 
@@ -48,8 +51,21 @@ same exact origin to `allowedOrigins` in `mandaybook-content.js`.
 - Activity date: `dateConversation`
 - Customer key: `customerId`
 
+Meeting fields:
+
+- Meeting type: `type === 210016` for a completed activity report. Planned
+  activities such as `210001` and `210002` are intentionally ignored.
+- Implementor: `userId`
+- Duration: difference between `feedItem.dateStart` and `feedItem.dateEnd`
+- Activity key: `refId`
+- Activity date: `feedItem.dateStart`
+- Customer key: `customerId`
+
+Only completed activity reports are imported; creating or assigning a meeting
+plan does not create Actual Work.
+
 The extension supports a single object in `data`, an array in `data`, an array
 in `data.value`, a root array, and a call nested in `data.conversation`. Customer
-IDs are read from the sanitized Call records rather than inferred from request
+IDs are read from sanitized activity records rather than inferred from request
 URLs. It imports only responses naturally observed while the Venio page is
 open; it does not extract a browser token to make independent API requests.

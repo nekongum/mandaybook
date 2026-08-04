@@ -14,21 +14,23 @@ function sanitizeCapture(payload) {
   const activities = payload.activities.reduce((result, item) => {
     const activityId = Number(item?.activityId);
     const durationMinutes = Number(item?.durationMinutes);
+    const activityKind = item?.activityKind === 'meeting' ? 'meeting' : 'call';
     const implementorUserId = typeof item?.implementorUserId === 'string'
       ? item.implementorUserId.trim()
       : '';
     if (
       !validPositiveInteger(activityId) ||
-      seen.has(activityId) ||
+      seen.has(`${activityKind}:${activityId}`) ||
       Number(item?.customerId) !== customerId ||
       !implementorUserId ||
       !Number.isFinite(durationMinutes) || durationMinutes < 0 || durationMinutes > 1440
     ) return result;
-    seen.add(activityId);
+    seen.add(`${activityKind}:${activityId}`);
     result.push({
       customerId,
       implementorUserId,
       activityId,
+      activityKind,
       activityDate: typeof item.activityDate === 'string' ? item.activityDate : '',
       durationMinutes
     });
@@ -51,8 +53,12 @@ async function storeCapture(payload) {
     ? stored[STORAGE_KEY]
     : {};
   const existing = cache[capture.customerId]?.activities || [];
-  const byActivityId = new Map(existing.map((activity) => [activity.activityId, activity]));
-  capture.activities.forEach((activity) => byActivityId.set(activity.activityId, activity));
+  const activityKey = (activity) => `${activity.activityKind || 'call'}:${activity.activityId}`;
+  const byActivityId = new Map(existing.map((activity) => [activityKey(activity), activity]));
+  capture.activities.forEach((activity) => {
+    const key = activityKey(activity);
+    byActivityId.set(key, activity);
+  });
   capture.activities = [...byActivityId.values()].slice(-MAX_ACTIVITIES_PER_CUSTOMER);
   cache[capture.customerId] = capture;
 
@@ -71,18 +77,24 @@ async function getLatestContext() {
   return { customerId: latest.customerId };
 }
 
-async function getCallData(customerId, implementorUserId) {
+async function getActivityData(customerId, implementorUserId, activityKind) {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   const capture = stored[STORAGE_KEY]?.[Number(customerId)];
   if (!capture) return null;
 
   const activities = capture.activities.filter(
-    (activity) => activity.implementorUserId === implementorUserId
+    (activity) =>
+      activity.implementorUserId === implementorUserId &&
+      (activity.activityKind || 'call') === activityKind &&
+      // A short-lived earlier build cached planned meetings with this marker.
+      // Never expose those records to Mandaybook.
+      !(activityKind === 'meeting' && activity.activityStage === 'planned')
   );
   return {
     customerId: Number(customerId),
     implementorUserId,
-    totalCallMinutes: activities.reduce((sum, activity) => sum + activity.durationMinutes, 0),
+    activityKind,
+    totalMinutes: activities.reduce((sum, activity) => sum + activity.durationMinutes, 0),
     activities
   };
 }
@@ -97,7 +109,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true, payload: await getLatestContext() });
       return;
     }
-    if (message?.type === 'GET_VENIO_CALL_DATA') {
+    if (
+      message?.type === 'GET_VENIO_CALL_DATA' ||
+      message?.type === 'GET_VENIO_MEETING_DATA'
+    ) {
       const customerId = Number(message.customerId);
       const implementorUserId = typeof message.implementorUserId === 'string'
         ? message.implementorUserId.trim()
@@ -106,7 +121,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: false, error: 'Invalid import request.' });
         return;
       }
-      sendResponse({ ok: true, payload: await getCallData(customerId, implementorUserId) });
+      const activityKind = message.type === 'GET_VENIO_MEETING_DATA' ? 'meeting' : 'call';
+      sendResponse({
+        ok: true,
+        payload: await getActivityData(customerId, implementorUserId, activityKind)
+      });
       return;
     }
     sendResponse({ ok: false, error: 'Unsupported request.' });

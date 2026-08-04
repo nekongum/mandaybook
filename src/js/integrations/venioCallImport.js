@@ -46,24 +46,68 @@ export async function getLatestVenioCustomerContext() {
 }
 
 export async function importVenioCallTime(customerId, implementorUserId) {
+  const result = await importVenioActivityTime('call', customerId, implementorUserId);
+  return { ...result, totalCallMinutes: result.totalMinutes };
+}
+
+export async function importVenioMeetingTime(customerId, implementorUserId) {
+  const result = await importVenioActivityTime('meeting', customerId, implementorUserId);
+  return { ...result, totalMeetingMinutes: result.totalMinutes };
+}
+
+async function importVenioActivityTime(activityKind, customerId, implementorUserId) {
   const expectedCustomerId = Number(customerId);
   const expectedUserId = typeof implementorUserId === 'string' ? implementorUserId.trim() : '';
   if (!positiveInteger(expectedCustomerId) || !expectedUserId) {
     throw new Error('Select a linked Venio customer and implementor first.');
   }
 
-  const payload = await requestExtension('VENIO_CALL_TIME_IMPORT_REQUEST', {
+  const requestType = activityKind === 'meeting'
+    ? 'VENIO_MEETING_TIME_IMPORT_REQUEST'
+    : 'VENIO_CALL_TIME_IMPORT_REQUEST';
+  const payload = await requestExtension(requestType, {
     customerId: expectedCustomerId,
     implementorUserId: expectedUserId
   });
-  if (!payload) return { totalCallMinutes: 0, activities: [] };
-  return validateVenioCallPayload(payload, expectedCustomerId, expectedUserId);
+  if (!payload) return { totalMinutes: 0, activities: [] };
+  return validateVenioActivityPayload(
+    payload,
+    expectedCustomerId,
+    expectedUserId,
+    activityKind
+  );
 }
 
 export function validateVenioCallPayload(payload, expectedCustomerId, expectedUserId) {
+  const result = validateVenioActivityPayload(
+    payload,
+    expectedCustomerId,
+    expectedUserId,
+    'call'
+  );
+  return { ...result, totalCallMinutes: result.totalMinutes };
+}
+
+export function validateVenioMeetingPayload(payload, expectedCustomerId, expectedUserId) {
+  const result = validateVenioActivityPayload(
+    payload,
+    expectedCustomerId,
+    expectedUserId,
+    'meeting'
+  );
+  return { ...result, totalMeetingMinutes: result.totalMinutes };
+}
+
+function validateVenioActivityPayload(
+  payload,
+  expectedCustomerId,
+  expectedUserId,
+  expectedActivityKind
+) {
   if (
     Number(payload.customerId) !== expectedCustomerId ||
     payload.implementorUserId !== expectedUserId ||
+    payload.activityKind !== expectedActivityKind ||
     !Array.isArray(payload.activities)
   ) {
     throw new Error('Venio extension returned mismatched data.');
@@ -78,6 +122,7 @@ export function validateVenioCallPayload(payload, expectedCustomerId, expectedUs
       seen.has(activityId) ||
       Number(activity?.customerId) !== expectedCustomerId ||
       activity?.implementorUserId !== expectedUserId ||
+      (activity?.activityKind || 'call') !== expectedActivityKind ||
       !Number.isFinite(durationMinutes) || durationMinutes < 0 || durationMinutes > 1440
     ) return result;
     seen.add(activityId);
@@ -90,7 +135,7 @@ export function validateVenioCallPayload(payload, expectedCustomerId, expectedUs
   }, []);
 
   return {
-    totalCallMinutes: activities.reduce((sum, activity) => sum + activity.durationMinutes, 0),
+    totalMinutes: activities.reduce((sum, activity) => sum + activity.durationMinutes, 0),
     activities
   };
 }

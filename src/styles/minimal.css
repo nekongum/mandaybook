@@ -751,6 +751,28 @@ thead th {
 .venio-call-import button[aria-busy="true"] {
   opacity: 0.65;
 }
+.venio-import-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+}
+.venio-call-import .venio-import-tab {
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-mute);
+  font-size: 12px;
+  cursor: pointer;
+}
+.venio-call-import .venio-import-tab.active {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
 #venioCallImportStatus {
   flex-basis: 100%;
   max-width: 360px;
