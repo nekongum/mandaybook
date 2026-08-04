@@ -8,6 +8,10 @@ const FIREBASE_CERTS_URL =
 let tokenCache = { accessToken: '', expiresAt: 0 };
 let firebaseCertCache = { certificates: {}, expiresAt: 0 };
 
+function resetTokenCache() {
+  tokenCache = { accessToken: '', expiresAt: 0 };
+}
+
 function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -96,16 +100,22 @@ function getVenioConfig() {
     clientSecret: process.env.VENIO_CLIENT_SECRET
   };
   if (Object.values(config).some((value) => !value)) {
-    throw new Error('Venio environment is incomplete');
+    const error = new Error('Venio environment is incomplete');
+    error.code = 'VENIO_CONFIG_ERROR';
+    throw error;
   }
   let parsedBaseUrl;
   try {
     parsedBaseUrl = new URL(config.baseUrl);
   } catch (_) {
-    throw new Error('Venio base URL is invalid');
+    const error = new Error('Venio base URL is invalid');
+    error.code = 'VENIO_CONFIG_ERROR';
+    throw error;
   }
   if (parsedBaseUrl.protocol !== 'https:') {
-    throw new Error('Venio base URL must use HTTPS');
+    const error = new Error('Venio base URL must use HTTPS');
+    error.code = 'VENIO_CONFIG_ERROR';
+    throw error;
   }
   config.baseUrl = parsedBaseUrl.toString();
   return config;
@@ -138,7 +148,11 @@ async function getVenioToken(config, forceRefresh = false) {
     body,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   });
-  if (!response.ok) throw new Error(`Venio token request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(`Venio token request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
 
   const data = await response.json();
   if (typeof data.access_token !== 'string' || !data.access_token) {
@@ -176,7 +190,7 @@ async function enquiryEmployees(config, input, retryUnauthorized = true) {
   });
 
   if (response.status === 401 && retryUnauthorized) {
-    tokenCache = { accessToken: '', expiresAt: 0 };
+    resetTokenCache();
     await getVenioToken(config, true);
     return enquiryEmployees(config, input, false);
   }
@@ -235,6 +249,9 @@ module.exports = async function handler(req, res) {
     );
     return sendJson(res, 200, { employees });
   } catch (error) {
+    if (error.status === 401) {
+      return sendJson(res, 401, { error: 'Unable to authenticate with Venio.' });
+    }
     if (error.status === 403) {
       return sendJson(res, 403, { error: 'You do not have permission to view employees.' });
     }
@@ -251,7 +268,16 @@ module.exports._test = {
   venioUrl,
   cacheMaxAge,
   enquiryEmployees,
-  resetTokenCache() {
-    tokenCache = { accessToken: '', expiresAt: 0 };
-  }
+  resetTokenCache
+};
+
+module.exports._shared = {
+  sendJson,
+  parseBearerToken,
+  verifyFirebaseIdToken,
+  getVenioConfig,
+  venioUrl,
+  getVenioToken,
+  resetTokenCache,
+  requestTimeoutMs: REQUEST_TIMEOUT_MS
 };

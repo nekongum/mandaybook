@@ -729,6 +729,50 @@ thead th {
   background: var(--bg-elevated);
 }
 
+.venio-call-import {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.venio-call-import select {
+  width: auto;
+  max-width: 210px;
+  min-height: 36px;
+  padding: 7px 28px 7px 10px;
+  font-size: 12px;
+}
+.venio-call-import button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+.venio-call-import button[aria-busy="true"] {
+  opacity: 0.65;
+}
+#venioCallImportStatus {
+  flex-basis: 100%;
+  max-width: 360px;
+  color: var(--ink-mute);
+  font-size: 12px;
+  text-align: right;
+}
+#venioCallImportStatus.is-error {
+  color: var(--danger);
+}
+@media (max-width: 720px) {
+  .venio-call-import {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+  #venioCallImportStatus {
+    max-width: none;
+    text-align: left;
+  }
+}
+
 tbody td,
 tfoot td {
   border-color: var(--line);

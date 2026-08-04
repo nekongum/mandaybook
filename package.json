@@ -3,6 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "node dev-server.js",
-    "test": "node api/venio/employees.test.js"
+    "test": "node api/venio/employees.test.js && node extensions/venio-call-import/parser.test.js && node src/js/integrations/venioCallImport.test.mjs"
   }
 }

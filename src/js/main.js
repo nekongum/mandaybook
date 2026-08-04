@@ -17,6 +17,10 @@ import { renderReportSettings, updateDocSetting } from './render/settings.js';
 
 import { initDropdown } from './interactions/dropdown.js';
 import { createEmployeePicker } from './interactions/employeePicker.js';
+import {
+  getLatestVenioCustomerContext,
+  importVenioCallTime
+} from './integrations/venioCallImport.js';
 
 import { exportPDF } from './export/pdf.js';
 import { exportXLSX } from './export/excel.js';
@@ -172,6 +176,7 @@ function openCompany(company) {
     saveState();
   }
   renderAll();
+  syncVenioCallImportControls();
   updateProfileLabels();
   document.getElementById('currentCompanyName').textContent = company.name;
 
@@ -250,6 +255,7 @@ function bindEvents() {
   // Add row buttons
   document.getElementById('addPlanBtn').addEventListener('click', addPlanRow);
   document.getElementById('addActualBtn').addEventListener('click', addActualRow);
+  document.getElementById('importVenioCallsBtn').addEventListener('click', handleVenioCallImport);
 
 
   // Download dropdown + actions
@@ -312,6 +318,7 @@ function saveProjectInfo() {
   company.updatedAt = new Date().toISOString();
   saveCompanies(currentUser, companies);
   currentCompany = company;
+  syncVenioCallImportControls();
   document.getElementById('currentCompanyName').textContent = company.name;
   // Sync name into project state so PDF export uses the updated name
   if (state.project) {
@@ -320,6 +327,134 @@ function saveProjectInfo() {
   }
   closeProjectInfoModal();
   showToast('Project info saved');
+}
+
+function setVenioCallImportStatus(message = '', { error = false } = {}) {
+  const status = document.getElementById('venioCallImportStatus');
+  status.textContent = message;
+  status.classList.toggle('is-error', error);
+}
+
+function syncVenioCallImportControls() {
+  const select = document.getElementById('venioCallImplementor');
+  if (!select) return;
+  const members = Array.isArray(currentCompany?.members) ? currentCompany.members : [];
+  const previousValue = select.value;
+  select.innerHTML = members.map((member) => `
+    <option value="${escapeHtml(member.userId)}">${escapeHtml(member.fullname)}</option>
+  `).join('');
+  if (members.some((member) => member.userId === previousValue)) select.value = previousValue;
+  select.hidden = members.length <= 1;
+  document.getElementById('importVenioCallsBtn').disabled = members.length === 0;
+  setVenioCallImportStatus('');
+}
+
+function linkCurrentCompanyToVenio(context) {
+  const companies = loadCompanies(currentUser);
+  const company = companies.find((item) => item.id === currentCompany?.id);
+  if (!company) throw new Error('Current project could not be found.');
+  company.venioCustomerId = context.customerId;
+  company.updatedAt = new Date().toISOString();
+  saveCompanies(currentUser, companies);
+  currentCompany = company;
+}
+
+function importedVenioActivityIds() {
+  return new Set(state.actual.flatMap((row) =>
+    Array.isArray(row._venioActivityIds) ? row._venioActivityIds.map(Number) : []
+  ));
+}
+
+async function ensureVenioCustomerLink() {
+  if (Number.isSafeInteger(Number(currentCompany?.venioCustomerId))) {
+    return Number(currentCompany.venioCustomerId);
+  }
+
+  setVenioCallImportStatus('Finding the current Venio customer...');
+  const context = await getLatestVenioCustomerContext();
+  if (!context) {
+    throw new Error('Open this customer’s activity page in Venio first, then try again.');
+  }
+  if (!confirm(`Link this Manday Project to Venio Customer ID ${context.customerId}?`)) {
+    throw new Error('Venio customer was not linked.');
+  }
+  linkCurrentCompanyToVenio(context);
+  return context.customerId;
+}
+
+async function handleVenioCallImport() {
+  const button = document.getElementById('importVenioCallsBtn');
+  const select = document.getElementById('venioCallImplementor');
+  const members = Array.isArray(currentCompany?.members) ? currentCompany.members : [];
+  const selectedUserId = select.value || members[0]?.userId || '';
+  if (!selectedUserId || !members.some((member) => member.userId === selectedUserId)) {
+    setVenioCallImportStatus('Select an implementor before importing.', { error: true });
+    return;
+  }
+
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  setVenioCallImportStatus('Importing call activity from Venio...');
+  try {
+    const customerId = await ensureVenioCustomerLink();
+    const result = await importVenioCallTime(customerId, selectedUserId);
+    const importedIds = importedVenioActivityIds();
+    const activities = result.activities.filter((activity) => !importedIds.has(activity.activityId));
+    if (!activities.length) {
+      setVenioCallImportStatus(
+        result.activities.length
+          ? 'No new call activity found for this implementor.'
+          : 'No call activity found for this implementor.'
+      );
+      return;
+    }
+
+    const importableActivities = activities
+      .map((activity) => ({
+        ...activity,
+        durationMinutes: Math.round(activity.durationMinutes)
+      }))
+      .filter((activity) => activity.durationMinutes > 0)
+      .sort((a, b) => (a.activityDate || '').localeCompare(b.activityDate || ''));
+    if (!importableActivities.length) {
+      setVenioCallImportStatus('No call activity found for this implementor.');
+      return;
+    }
+    const fallbackDate = new Date().toISOString().slice(0, 10);
+    const importedAt = new Date().toISOString();
+    importableActivities.forEach((activity) => {
+      state.actual.push({
+        task: 'Phone Call',
+        date: activity.activityDate.slice(0, 10) || fallbackDate,
+        hours: Math.floor(activity.durationMinutes / 60),
+        minutes: activity.durationMinutes % 60,
+        stakeholder: '',
+        createdAt: importedAt,
+        _venioCustomerId: customerId,
+        _venioImplementorUserId: selectedUserId,
+        _venioActivityIds: [activity.activityId]
+      });
+    });
+    const totalMinutes = importableActivities.reduce(
+      (sum, activity) => sum + activity.durationMinutes,
+      0
+    );
+    renderActual();
+    renderSummary();
+    renderClientView();
+    saveState();
+    setVenioCallImportStatus(
+      `Imported ${importableActivities.length} call activities (${totalMinutes} minutes).`
+    );
+  } catch (error) {
+    setVenioCallImportStatus(
+      error.message || 'Unable to import from Venio. Make sure Venio is open and you are signed in.',
+      { error: true }
+    );
+  } finally {
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+  }
 }
 
 function openCreateWorkspaceModal() {
